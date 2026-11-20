@@ -1,0 +1,97 @@
+# Linguini config: copy to ~/.config/linguini/config.toml
+# Every key is optional; the values below are the defaults.
+
+home    = "de"
+foreign = "en"
+
+[detect]
+# Detection only chooses between home and foreign. A text must score this much
+# more "foreign" than "home" to be translated foreign=>home, so ambiguous input
+# ("die", "Gift") goes home=>foreign. Single words are first looked up in the
+# dict.cc dictionary when it is installed.
+margin = 1.5
+# If the translation equals the input ("house" read as German comes back as
+# "house"), retry in the other direction.
+flip_on_identity = true
+
+[backend]
+# Fallback chains, tried in order until one returns a result. Backends that are
+# not set up (no key, no file, not installed) are skipped silently.
+#   google        unofficial Google endpoint, no key, may rate-limit
+#   google_cloud  official Google Cloud Translation, API key
+#   azure         Microsoft Translator, free tier 2M chars/month; dictionary for words
+#   deepl         DeepL API, key
+#   llm           any OpenAI-compatible API (OpenAI, Ollama, llama.cpp, ...)
+#   bergamot      offline, via translateLocally
+#   dictcc        offline dict.cc dictionary, single words only
+phrase = ["google", "azure", "google_cloud", "llm", "bergamot"]
+word   = ["dictcc", "google", "azure", "google_cloud", "llm", "bergamot"]
+timeout_ms = 3000   # per backend attempt
+
+# Each key-based backend takes one of: api_key, api_key_cmd (e.g.
+# "pass show azure-translator"), or the environment variable named below.
+
+[google_cloud]   # $GOOGLE_CLOUD_API_KEY
+# api_key_cmd = "pass show google-translate"
+
+[azure]          # $AZURE_TRANSLATOR_KEY
+# api_key_cmd = "pass show azure-translator"
+# region = "westeurope"   # needed for regional or multi-service resources
+endpoint = "https://api.cognitive.microsofttranslator.com"
+
+[deepl]          # $DEEPL_API_KEY; keys ending in ":fx" use the free endpoint
+# api_key_cmd = "pass show deepl"
+
+[deepl.target_variants]
+en = "EN-US"   # or EN-GB
+pt = "PT-BR"   # or PT-PT
+
+[llm]            # $OPENAI_API_KEY; not needed for local servers
+base_url = "https://api.openai.com/v1"
+# model = "..."              # required, e.g. an OpenAI model id
+# For Ollama:
+# base_url = "http://localhost:11434/v1"
+# model = "llama3.2"
+json_mode = true             # send response_format json_object; disable if the server rejects it
+# temperature = 0            # only sent when set; some models reject it
+# api_key_cmd = "pass show openai"
+
+[bergamot]
+# Offline translation with Mozilla's Bergamot models via translateLocally.
+# Text goes to stdin; {from} and {to} are replaced. Download models with
+# `translateLocally -d de-en-base` and `translateLocally -d en-de-base`.
+command = "translateLocally"
+args = ["-m", "{from}-{to}-base"]
+
+[dictcc]
+# Request the dictionary download from dict.cc (free for
+# personal use) and save the unpacked .txt here. An index is built in
+# ~/.cache/linguini on first use and whenever the file changes.
+file = "~/.local/share/linguini/dictcc-de-en.txt"
+langs = ["de", "en"]   # language of the first and second column
+max_results = 30
+
+[output]
+# Where Enter copies to: any of clipboard, primary, secondary.
+selections = ["clipboard"]
+# Shift+Enter types the result with xdotool:
+type_delay_ms = 12   # delay between keystrokes
+type_wait_ms  = 80   # wait after rofi closes so focus returns to the window
+
+[keys]
+# rofi key names. Avoid rofi's defaults (Alt+f, Alt+b, Control+a, ...), or
+# unbind them in [rofi] unbind.
+toggle = "Alt+t"         # swap direction
+from   = "Alt+s"         # choose source language
+to     = "Alt+o"         # choose target language
+type   = "Shift+Return"  # type result into the focused window
+edit   = "Alt+e"         # from the result back to the input
+
+[rofi]
+bin = "rofi"
+show_hints = true
+# rofi bindings to clear, e.g. when a key above clashes with your rofi config.
+unbind = ["kb-accept-alt"]
+# Extra arguments, e.g. ["-theme", "~/.config/rofi/linguini.rasi"]
+args = []
+max_lines = 12
